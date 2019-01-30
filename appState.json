@@ -1,0 +1,94 @@
+{
+  "EDITOR_STATE": {
+    "allProjectFiles": {
+      "0e10baef-c4c5-42ae-9ac5-6dea8e465bc0": {
+        "id": "0e10baef-c4c5-42ae-9ac5-6dea8e465bc0",
+        "parent": null,
+        "name": "batchfileprocessing2",
+        "type": "DIRECTORY",
+        "isDirectory": true,
+        "children": [
+          "591f721a-6be8-40d4-8a19-4510ba83b0a0"
+        ],
+        "isRemovable": false,
+        "filePath": "batchfileprocessing2"
+      },
+      "591f721a-6be8-40d4-8a19-4510ba83b0a0": {
+        "id": "591f721a-6be8-40d4-8a19-4510ba83b0a0",
+        "parent": "0e10baef-c4c5-42ae-9ac5-6dea8e465bc0",
+        "name": "lambda.js",
+        "type": "LAMBDA_FILE",
+        "isDirectory": false,
+        "children": [],
+        "isRemovable": true,
+        "filePath": "batchfileprocessing2/lambda.js",
+        "code": "let AWS = require('aws-sdk');\nconst s3 = new AWS.S3();\nconst sns=new  AWS.SNS();\n\nconst S3_BUCKET_NAME = 'arn:aws:s3:::batchfileprocessing2 ';\nconst SNS_TOPIC_ARN = 'arn:aws:sns:eu-west-1:819906645383:BatchProcessing ';\n\n\nexports.handler = function (event, context, callback) {\n\n    console.log(`Batch process triggered at ${event.time}`);\n    s3.listObjects({\n        'Bucket': S3_BUCKET_NAME,\n        'MaxKeys': 100,\n        'Prefix': ''\n    }).promise()\n        .then(data => {\n            let numFiles = data.Contents.length;\n            let successCount = 0;\n            let failedCount = 0;\n\n            console.log(`${numFiles} files found to process`);\n            \n\n            console.log(`${numFiles} files found to process`);\n            data.Contents.forEach(file => {\n                let fileName = file.Key;\n\n                console.log(`Processing File : ${fileName}`);\n            \n        \n         s3.deleteObject({\n                    'Bucket': S3_BUCKET_NAME,\n                    'Key': fileName\n                }, (err, data) => {\n                    if (err) {\n                        console.log(`Failed to delete file : ${fileName}`, err, err.stack);\n                        failedCount++;\n                    } else {\n                        console.log(`Successfully deleted file ${fileName}`);\n                        successCount++;\n                    }\n\n                    if ((successCount + failedCount) === numFiles) {\n                        // This is the last file. So send the notification.\n                        let message = `Processing finished. ${successCount} successful and ${failedCount} failed`;\n\n                        exports.sendNotification(\n                            'Processing Finished',\n                            message,\n                            () => callback(null, \"Processing finished & Notification sent\"),\n                            (err) => callback(err, \"Processing finished & Notification failed\"));\n                    }\n                });\n            })\n})\n.catch(err => {\n            console.log(\"Failed to get file list\", err, err.stack); // an error occurred\n            let message = `Message processing failed due to : ${err}`;\n\n\n/* \nThis function publishes the provided message with subject to the notification\ntopic and excute the provided onSuccess or onFailure callback handler \n*/\nexports.sendNotification = (subject, message, onSuccess, onFailure) => {\n    sns.publish({\n        Message: message,\n        Subject: subject,\n        MessageAttributes: {},\n        MessageStructure: 'String',\n        TopicArn: SNS_TOPIC_ARN\n    }).promise()\n        .then(data => {\n            console.log(\"Successfully published notification\");\n            onSuccess();\n        })\n        .catch(err => {\n            console.log(\"Error occurred while publishing notification\", err, err.stack);\n            onFailure(err);\n        });\n\n}\n}\n)}",
+        "triggers": [
+          {
+            "resourceName": "s3uploadfileswatz",
+            "config": {
+              "type": "s3:ObjectCreated:*",
+              "keyPrefix": "",
+              "keySuffix": ""
+            }
+          }
+        ],
+        "config": {
+          "runtime": "nodejs8.10",
+          "timeout": 60,
+          "memory": 128
+        }
+      }
+    },
+    "deletedFiles": [],
+    "rootNode": "0e10baef-c4c5-42ae-9ac5-6dea8e465bc0",
+    "openFiles": [
+      "591f721a-6be8-40d4-8a19-4510ba83b0a0"
+    ],
+    "currentFileId": "591f721a-6be8-40d4-8a19-4510ba83b0a0",
+    "resources": {
+      "s3uploadfileswatz": {
+        "name": "s3uploadfileswatz",
+        "type": "S3",
+        "config": {
+          "mode": 1,
+          "bucket": {
+            "region": "us-east-1",
+            "name": "uploadfileswatz"
+          }
+        },
+        "globallyEditable": false
+      }
+    },
+    "envVariables": [
+      {
+        "lambdaId": "all",
+        "varKey": "SIGMA_AWS_ACC_ID",
+        "varValue": null,
+        "shouldPersist": false,
+        "displayOnly": false,
+        "editable": false
+      }
+    ],
+    "packageJSON": {
+      "dependencies": {}
+    },
+    "lambdaId": "591f721a-6be8-40d4-8a19-4510ba83b0a0"
+  },
+  "PROJECT_META": {
+    "projectName": "batchfileprocessing2",
+    "projectDescription": "batchfileprocessing2",
+    "projectVersion": "1.0.0",
+    "projectRegion": "us-east-1",
+    "platform": "AWS",
+    "platformRegions": {},
+    "lastSave": 1548842892911
+  },
+  "VCS_STATE": {
+    "provider": "GitHub",
+    "repo": {
+      "name": "batchfileprocessing2",
+      "url": "https://github.com/h-swathi-shenoy/batchfileprocessing2"
+    }
+  }
+}
