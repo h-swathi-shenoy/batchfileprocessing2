@@ -1,4 +1,5 @@
 let AWS = require('aws-sdk');
+let it=require('imagemagick')
 const s3 = new AWS.S3();
 const sns=new  AWS.SNS();
 
